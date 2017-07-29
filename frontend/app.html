@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>limitPNG</title>
+    <script src="./lib/jquery.min.js"></script>
+    <script src="./lib/vue.js"></script>
+    <script src="./lib/vue-dragula.min.js"></script>
+    <script src="./lib/webuploader.js?v=1"></script>
+    <link rel="stylesheet" href="./lib/animate.css">
+    <link rel="stylesheet" href="./css/index.css?v=1">
+    <link rel="stylesheet" href="./css/wave-doing.css">
+    <link rel="stylesheet" href="./css/dragula.min.css">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0"/>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?2357d74381bb843fef12d58bb43ddc0f";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+</head>
+<body id="main_body"  >
+<div id="vue_app" class="animated-q zoomIn">
+<div  class="title">limitPNG <span class="ver">ONLINE</span></div>
+    <!--<h1>Hello World!</h1>-->
+    <!--We are using node script>document.write(process.versions.node)</script>,-->
+    <!--Chrome <script>document.write(process.versions.chrome)</script>,-->
+    <!--and Electron <script>document.write(process.versions.electron)</script>.-->
+    <div class="menu_bar" >
+        <button title="打开文件" id="open_file" v-on:click="open_file"><img src="./img/file.svg" alt=""  ></button>
+        <button title="清空列表" id="remove_all" v-on:click="remove_all"><img src="./img/remove.svg" alt=""></button>
+
+        <div ondblclick="out_log_try()" class="list_info"> 共 {{list.length}} 个文件，总大小：{{list_size_old|filter_file_size}} <span v-if="list_size_new">，新总大小：{{list_size_new|filter_file_size}}</span></div>
+    </div>
+
+    <div class="list_shadow_top"></div>
+    <div id="list" >
+
+
+
+        <div id="welcome"  v-if="list.length==0"> 拖入 PNG 图片进来吧</div>
+
+        <div class="loading_input_file" v-if="loading_file">
+            <div class="info">
+                <img class="icon" src="./img/loading.svg" alt="">
+            </div>
+        </div>
+
+        <div id ="app_list" class="list_div" v-dragula="list" bag="my-bag" >
+            <div v-for="z of list" class="item " transition="anime" v-bind:class="{'done':z.done, 'error':z.error}">
+                <!--v-on:dragstart="darg_start" v-on:drag="darg_on" v-on:dragend="darg_end" -->
+                <div class="doing_ico" v-if="z.doing"><img src="./img/loading.svg" alt=""></div>
+                <div class="done_ico" v-if="z.done"><img src="./img/ok.svg" alt=""></div>
+                <div class="error_ico" v-if="z.error" :title="z.error_info"><img src="./img/error.svg" alt=""></div>
+                <div class="name ">
+                    <a :download="z.name+'_'+mode" v-if="z.new_File!=''" :href="z.new_File"><span :title="z.path">{{z.name}} (点击下载)</span></a>
+                    <span v-else :title="z.path">{{z.name}}</span>
+                </div>
+                <div v-if="z.pending==true" title="排队中" class="size_old">排队中</div>
+                <div v-if="z.upload<100" title="上传中" class="size_old">{{z.upload}}%</div>
+                <div v-if="z.upload==100&&z.pending!=true" :title="'原大小： '+z.size_old+' B'" class="size_old">{{z.size_old | filter_file_size }}</div>
+                <div :title="'新大小： '+z.size_new+' B \n减少大小：'+ ( (z.size_old - z.size_new) | filter_file_size )+' （'+(z.size_old - z.size_new)+' B）'"
+                     v-if="z.size_new >0" class="size_new animated-s  fadeInRight">{{z.size_new | filter_file_size }} ←
+                    <span class="animated  fadeInUp"> {{z.size_new/z.size_old | filter_file_size_pre }} </span>
+                </div>
+
+                <div class="wave_box" v-if="z.doing">
+                    <div v-bind:class="{ 'wave': z.doing}" class='-one anime'></div>
+                    <div v-bind:class="{ 'wave': z.doing}" class=' -two anime'></div>
+                    <div v-bind:class="{ 'wave': z.doing}" class=' -three anime'></div>
+                    <div v-bind:class="{ 'wave': z.doing}" class=' -four anime'></div>
+                    <div v-bind:class="{ 'wave': z.doing}" class=' -five anime'></div>
+                </div>
+            </div>
+        </div>
+
+
+        <!--<div id ="b"> {{list | json }}</div>-->
+    </div>
+    <div class="list_shadow_bottm"></div>
+    <div style="-webkit-app-region: drag" class="bottom_bar" v-bind:class="{ 'cant_do': tasks_doing>0}">
+
+        <select name="mod" value="limit" class="lift"  v-model="mode">
+            <optgroup label="有损">
+                <option value="lossy-quick" title="快速有损压缩, 耗时极短，压缩效果一般">有损快</option>
+                <option value="lossy-high" title="压缩效果较好，画质损失较小">高质量</option>
+                <option value="lossy-low" title="压缩效果最佳，画质损失较大">低质量</option>
+                <option value="256-high" title="256 色高质量">256 高</option>
+                <option value="256-low" title="256 色低质量">256 低</option>
+                <option value="256-lowest" title="大量减色">极低色</option>
+                <!--<option value="256-middle" title="256 色中质量">256 中</option>-->
+                <!--<option value="lossy-middle">中质量</option>-->
+            </optgroup>
+            <optgroup label="无损" class="op_p">
+                <option title="耗时极短，能有极限模式 90% 的压缩效果" class="op_quick" value="quick">快速</option>
+                <option title="耗时较长，效果略逊于极限模式" class="op_high" value="high">强力</option>
+                <option title="压缩效果最佳，耗时极长" class="op_limit" value="limit" selected="selected">极限</option>
+            </optgroup>
+
+        </select>
+        <button id="do" class="do" type="button" v-on:click="task_start"> {{(mode=='limit')?'极限':'压缩'}} </button>
+    </div>
+</div>
+<div id="picker"></div>
+<script src="main.js?v=5"></script>
+</body>
+</html>
